@@ -5,61 +5,69 @@ export const runtime = "nodejs";
 
 export async function GET() {
   const encoder = new TextEncoder();
+  let cancelled = false;
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // Send initial response immediately
         controller.enqueue(
           encoder.encode(JSON.stringify({ type: "start" }) + "\n")
         );
 
-        // Create an array of promises for parallel fetching
-        const fetchPromises = RSS_SOURCES.map(async (source) => {
-          try {
-            const items = await fetchSingleFeed(source);
-            if (items && items.length > 0) {
-              // Send chunk of data
-              const chunk = encoder.encode(
+        const results = await Promise.allSettled(
+          RSS_SOURCES.map(async (source) => ({
+            source,
+            items: await fetchSingleFeed(source),
+          }))
+        );
+
+        for (const result of results) {
+          if (cancelled) return;
+
+          if (result.status === "fulfilled" && result.value.items.length > 0) {
+            controller.enqueue(
+              encoder.encode(
                 JSON.stringify({
                   type: "chunk",
-                  source,
-                  items,
+                  source: result.value.source,
+                  items: result.value.items,
                 }) + "\n"
-              );
-              controller.enqueue(chunk);
-            }
-          } catch (sourceError) {
-            console.error(`Error fetching ${source}:`, sourceError);
-            // Send error for this source but continue
+              )
+            );
+          } else if (result.status === "rejected") {
+            console.error("Unable to fetch an RSS source:", result.reason);
             controller.enqueue(
               encoder.encode(
                 JSON.stringify({
                   type: "error",
-                  source,
-                  error:
-                    typeof sourceError === "object" &&
-                    sourceError &&
-                    "message" in sourceError
-                      ? (sourceError as { message: string }).message
-                      : String(sourceError),
+                  error: "A news source is temporarily unavailable.",
                 }) + "\n"
               )
             );
           }
-        });
-
-        // Wait for all fetches to complete
-        await Promise.all(fetchPromises);
+        }
       } catch (error) {
-        console.error("Stream error:", error);
-        controller.error(error);
+        console.error("Unable to stream news:", error);
+        if (!cancelled) {
+          controller.enqueue(
+            encoder.encode(
+              JSON.stringify({
+                type: "error",
+                error: "News is temporarily unavailable.",
+              }) + "\n"
+            )
+          );
+        }
       } finally {
-        // Send end message
-        controller.enqueue(
-          encoder.encode(JSON.stringify({ type: "end" }) + "\n")
-        );
-        controller.close();
+        if (!cancelled) {
+          controller.enqueue(
+            encoder.encode(JSON.stringify({ type: "end" }) + "\n")
+          );
+          controller.close();
+        }
       }
+    },
+    cancel() {
+      cancelled = true;
     },
   });
 

@@ -9,14 +9,19 @@ import { calculateVolumeInfo } from "@/lib/textUtils";
 export const dynamic = "force-dynamic";
 
 export default function Home() {
-  const [today, setToday] = useState(new Date());
+  const [today, setToday] = useState<Date | null>(null);
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const timeoutId = setTimeout(() => {
       setToday(new Date());
-    }, 1000); // Update every second
+      intervalId = setInterval(() => setToday(new Date()), 60000);
+    }, 0);
 
-    return () => clearInterval(intervalId); // Clean up the interval on component unmount
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   // Get current date in newspaper format
@@ -26,7 +31,10 @@ export default function Home() {
     month: "long",
     day: "numeric",
   };
-  const formattedDate = today.toLocaleDateString("en-FJ", options);
+  const formattedDate = today?.toLocaleDateString("en-FJ", {
+    ...options,
+    timeZone: "Pacific/Fiji",
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,13 +50,17 @@ export default function Home() {
           </div>
           <div className="text-center mb-4">
             <div className="text-xs uppercase tracking-widest mt-1">
-              {formattedDate}
+              {formattedDate ?? "\u00a0"}
             </div>
           </div>{" "}
           <div className="flex justify-between items-center text-sm border-t border-b border-black dark:border-gray-800 py-2">
-            <div>{`Vol. ${calculateVolumeInfo(today).volume} No. ${
-              calculateVolumeInfo(today).issueNumber
-            }`}</div>
+            <div>
+              {today
+                ? `Vol. ${calculateVolumeInfo(today).volume} No. ${
+                    calculateVolumeInfo(today).issueNumber
+                  }`
+                : "\u00a0"}
+            </div>
             <div>Fiji&apos;s Premier News Aggregator</div>
             <div>Daily Edition</div>
           </div>
@@ -64,7 +76,9 @@ export default function Home() {
       </main>
       <footer className="border-t border-black dark:border-gray-800 py-6 mt-8">
         <div className="container px-4 md:px-6 lg:px-8 text-center text-sm">
-          <p>© {today.getFullYear()} Quick Fiji News. All rights reserved.</p>
+          <p>
+            © {today?.getFullYear() ?? ""} Quick Fiji News. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>
