@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchSingleFeed, RSS_SOURCES } from "@/lib/rssService";
+import { fetchSingleSource, NEWS_SOURCES } from "@/lib/rssService";
 import { NewsItem } from "@/types/news";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ let refreshInFlight: Promise<NewsItem[]> | null = null;
 
 async function refreshNews(): Promise<NewsItem[]> {
   const results = await Promise.allSettled(
-    RSS_SOURCES.map((source) => fetchSingleFeed(source))
+    NEWS_SOURCES.map((source) => fetchSingleSource(source))
   );
 
   return results
@@ -52,7 +52,7 @@ function response(items: NewsItem[], stale: boolean) {
   return NextResponse.json(
     {
       items,
-      sourcesCount: RSS_SOURCES.length,
+      sourcesCount: NEWS_SOURCES.length,
       totalItems: items.length,
       stale,
       updatedAt: new Date(cacheTimestamp).toISOString(),

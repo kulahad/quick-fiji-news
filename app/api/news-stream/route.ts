@@ -1,4 +1,4 @@
-import { fetchSingleFeed, RSS_SOURCES } from "@/lib/rssService";
+import { fetchSingleSource, NEWS_SOURCES } from "@/lib/rssService";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,9 +14,9 @@ export async function GET() {
         );
 
         const results = await Promise.allSettled(
-          RSS_SOURCES.map(async (source) => ({
-            source,
-            items: await fetchSingleFeed(source),
+          NEWS_SOURCES.map(async (url) => ({
+            source: new URL(url).hostname.replace(/^www\./, ""),
+            items: await fetchSingleSource(url),
           }))
         );
 
