@@ -22,19 +22,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { NewsCategory } from "@/types/news";
 import Link from "next/link";
 
 export const SOURCES = [
   { id: "fbcnews", label: "FBC News", value: "fbcnews.com.fj" },
-  { id: "fijisun", label: "Fiji Sun", value: "fijisun.com.fj" },
   {
     id: "islandsbusiness",
     label: "Islands Business",
@@ -42,7 +34,6 @@ export const SOURCES = [
   },
   { id: "fijilive", label: "Fiji Live", value: "fijilive.com" },
   { id: "fijionenews", label: "Fiji One News", value: "fijionenews.com.fj" },
-  { id: "fijitimes", label: "Fiji Times", value: "www.fijitimes.com.fj" },
 ] as const;
 
 const CATEGORIES: NewsCategory[] = [
@@ -61,8 +52,6 @@ interface NewsFiltersProps {
   setSelectedSources: (sources: string[]) => void;
   selectedCategories: NewsCategory[];
   setSelectedCategories: (categories: NewsCategory[]) => void;
-  dateFilter: string;
-  setDateFilter: (date: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   sortOption: SortOption;
@@ -74,8 +63,6 @@ export function NewsFilters({
   setSelectedSources,
   selectedCategories,
   setSelectedCategories,
-  dateFilter,
-  setDateFilter,
   searchQuery,
   setSearchQuery,
   sortOption,

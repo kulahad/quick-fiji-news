@@ -1,5 +1,4 @@
 import { fetchSingleFeed, RSS_SOURCES } from "@/lib/rssService";
-import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -66,7 +65,7 @@ export async function GET() {
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream",
+      "Content-Type": "application/x-ndjson; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
     },

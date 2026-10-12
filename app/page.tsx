@@ -49,7 +49,7 @@ export default function Home() {
             <div>{`Vol. ${calculateVolumeInfo(today).volume} No. ${
               calculateVolumeInfo(today).issueNumber
             }`}</div>
-            <div>Fiji's Premier News Aggregator</div>
+            <div>Fiji&apos;s Premier News Aggregator</div>
             <div>Daily Edition</div>
           </div>
         </div>

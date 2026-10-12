@@ -6,11 +6,9 @@ import { NewsFilters } from "./news-filters";
 
 const ALL_SOURCES = [
   "fbcnews.com.fj",
-  "fijisun.com.fj",
   "islandsbusiness.com",
   "fijilive.com",
   "fijionenews.com.fj",
-  "fijitimes.com.fj",
 ];
 
 const ALL_CATEGORIES: NewsCategory[] = [
@@ -26,7 +24,6 @@ export default function NewsContainer() {
   const [selectedSources, setSelectedSources] = useState<string[]>(ALL_SOURCES);
   const [selectedCategories, setSelectedCategories] =
     useState<NewsCategory[]>(ALL_CATEGORIES);
-  const [dateFilter, setDateFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortOption, setSortOption] = useState<"latest" | "local-first">(
     "latest"
@@ -40,8 +37,6 @@ export default function NewsContainer() {
           setSelectedSources={setSelectedSources}
           selectedCategories={selectedCategories}
           setSelectedCategories={setSelectedCategories}
-          dateFilter={dateFilter}
-          setDateFilter={setDateFilter}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           sortOption={sortOption}
@@ -52,7 +47,6 @@ export default function NewsContainer() {
         <NewsFeed
           sources={selectedSources}
           categories={selectedCategories}
-          dateFilter={dateFilter}
           searchQuery={searchQuery}
           sortOption={sortOption}
         />

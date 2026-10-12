@@ -65,6 +65,8 @@ export default function NewsFeed({
     news,
     loading,
     error,
+    stale,
+    lastUpdated,
     refetch,
     loadedSources,
     previousLoadedSources,
@@ -173,7 +175,10 @@ export default function NewsFeed({
             {!loading && news.length > 0 && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Last updated {formatDate(new Date().toISOString())}</span>
+                <span>
+                  {stale ? "Showing saved headlines" : "Last updated"}{" "}
+                  {lastUpdated ? formatDate(lastUpdated) : ""}
+                </span>
               </div>
             )}
             {loading && news.length > 0 && (
