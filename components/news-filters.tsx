@@ -1,6 +1,6 @@
 "use client";
 
-import { Filter, Search, X, Clock, MapPin, ExternalLink } from "lucide-react";
+import { Filter, Search, X, Clock, MapPin } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { NewsCategory } from "@/types/news";
-import Link from "next/link";
+import { SiteAttribution } from "@/components/site-attribution";
 
 export const SOURCES = [
   { id: "fbcnews", label: "FBC News", value: "fbcnews.com.fj" },
@@ -167,19 +167,7 @@ export function NewsFilters({
       <Separator className="bg-black/20 dark:bg-white/20" />
       {/* Attribution */}
       <div className="space-y-2 pt-2">
-        <div className="flex flex-col space-y-1">
-          <Link
-            href="https://kulahad.github.io/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
-          >
-            Built by Mohammed Ahad <ExternalLink className="h-3 w-3" />
-          </Link>
-          <span className="text-[11px] text-muted-foreground/60">
-            Created with ❤️ in Fiji
-          </span>
-        </div>
+        <SiteAttribution />
       </div>
     </div>
   );

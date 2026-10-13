@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/theme-toggle";
 import NewsContainer from "@/components/news-container";
+import { SiteAttribution } from "@/components/site-attribution";
 import { calculateVolumeInfo } from "@/lib/textUtils";
 
 export const dynamic = "force-dynamic";
@@ -82,6 +83,9 @@ export default function Home() {
           <p>
             © {today?.getFullYear() ?? ""} Quick Fiji News. All rights reserved.
           </p>
+          <div className="mt-2">
+            <SiteAttribution />
+          </div>
         </div>
       </footer>
     </div>
