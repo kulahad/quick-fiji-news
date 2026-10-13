@@ -6,13 +6,20 @@ import type { NewsItem } from "@/types/news";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-function response(items: NewsItem[], updatedAt: string) {
+function response(
+  items: NewsItem[],
+  updatedAt: string,
+  sources: Awaited<ReturnType<typeof fetchLiveNews>>["sources"],
+  partial: boolean
+) {
   return NextResponse.json(
     {
       items,
       sourcesCount: NEWS_SOURCES.length,
       totalItems: items.length,
-      stale: false,
+      stale: partial,
+      partial,
+      sources,
       updatedAt,
     },
     {
@@ -26,8 +33,8 @@ function response(items: NewsItem[], updatedAt: string) {
 
 export async function GET() {
   try {
-    const { items, updatedAt } = await fetchLiveNews();
-    if (items.length > 0) return response(items, updatedAt);
+    const { items, updatedAt, sources, partial } = await fetchLiveNews();
+    if (items.length > 0) return response(items, updatedAt, sources, partial);
 
     return NextResponse.json(
       { error: "News sources are temporarily unavailable.", items: [] },
