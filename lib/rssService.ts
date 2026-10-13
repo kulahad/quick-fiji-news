@@ -50,9 +50,20 @@ interface SourceCacheEntry {
   fetchedAt: number;
 }
 
+export interface SourceFetchResult {
+  items: NewsItem[];
+  error: string | null;
+  durationMs: number;
+}
+
+interface SourceFailure {
+  retryAfter: number;
+  error: string;
+}
+
 const sourceCache = new Map<string, SourceCacheEntry>();
-const sourceFailures = new Map<string, number>();
-const inFlightSources = new Map<string, Promise<NewsItem[]>>();
+const sourceFailures = new Map<string, SourceFailure>();
+const inFlightSources = new Map<string, Promise<SourceFetchResult>>();
 
 function getText(value: unknown): string {
   if (typeof value === "string" || typeof value === "number") {
@@ -526,27 +537,52 @@ async function refreshFeed(source: string): Promise<NewsItem[]> {
   }
 }
 
-export function fetchSingleSource(source: string): Promise<NewsItem[]> {
+export function fetchSourceResult(
+  source: string
+): Promise<SourceFetchResult> {
   const now = Date.now();
   const cached = sourceCache.get(source);
 
   if (cached && now - cached.fetchedAt < SOURCE_CACHE_TTL) {
-    return Promise.resolve(cached.items);
+    return Promise.resolve({
+      items: cached.items,
+      error: null,
+      durationMs: 0,
+    });
   }
 
-  const retryAfter = sourceFailures.get(source) ?? 0;
-  if (retryAfter > now) {
-    return Promise.resolve(cached?.items ?? []);
+  const failure = sourceFailures.get(source);
+  if (failure && failure.retryAfter > now) {
+    return Promise.resolve({
+      items: cached?.items ?? [],
+      error: failure.error,
+      durationMs: 0,
+    });
   }
 
   const existingRequest = inFlightSources.get(source);
   if (existingRequest) return existingRequest;
 
+  const startedAt = Date.now();
   const request = refreshFeed(source)
-    .catch((error: unknown) => {
-      sourceFailures.set(source, Date.now() + SOURCE_RETRY_DELAY);
+    .then((items) => ({
+      items,
+      error: null,
+      durationMs: Date.now() - startedAt,
+    }))
+    .catch((error: unknown): SourceFetchResult => {
+      const message =
+        error instanceof Error ? error.message : "Unknown source error";
+      sourceFailures.set(source, {
+        retryAfter: Date.now() + SOURCE_RETRY_DELAY,
+        error: message,
+      });
       console.error(`Unable to refresh news source ${source}:`, error);
-      return cached?.items ?? [];
+      return {
+        items: cached?.items ?? [],
+        error: message,
+        durationMs: Date.now() - startedAt,
+      };
     })
     .finally(() => {
       inFlightSources.delete(source);
@@ -554,6 +590,10 @@ export function fetchSingleSource(source: string): Promise<NewsItem[]> {
 
   inFlightSources.set(source, request);
   return request;
+}
+
+export async function fetchSingleSource(source: string): Promise<NewsItem[]> {
+  return (await fetchSourceResult(source)).items;
 }
 
 export async function* fetchNewsSourcesGenerator() {

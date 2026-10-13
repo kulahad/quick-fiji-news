@@ -1,4 +1,5 @@
-import { fetchSingleSource, NEWS_SOURCES } from "@/lib/rssService";
+import { fetchLiveNews } from "@/lib/live-news";
+import { NEWS_SOURCES } from "@/lib/rssService";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,32 +14,29 @@ export async function GET() {
           encoder.encode(JSON.stringify({ type: "start" }) + "\n")
         );
 
-        const results = await Promise.allSettled(
-          NEWS_SOURCES.map(async (url) => ({
-            source: new URL(url).hostname.replace(/^www\./, ""),
-            items: await fetchSingleSource(url),
-          }))
-        );
-
-        for (const result of results) {
+        const { results } = await fetchLiveNews();
+        for (const [index, result] of results.entries()) {
           if (cancelled) return;
 
-          if (result.status === "fulfilled" && result.value.items.length > 0) {
+          const source = new URL(NEWS_SOURCES[index])
+            .hostname.replace(/^www\./, "");
+          if (result.items.length > 0) {
             controller.enqueue(
               encoder.encode(
                 JSON.stringify({
                   type: "chunk",
-                  source: result.value.source,
-                  items: result.value.items,
+                  source,
+                  items: result.items,
                 }) + "\n"
               )
             );
-          } else if (result.status === "rejected") {
-            console.error("Unable to fetch an RSS source:", result.reason);
+          }
+          if (result.error) {
             controller.enqueue(
               encoder.encode(
                 JSON.stringify({
                   type: "error",
+                  source,
                   error: "A news source is temporarily unavailable.",
                 }) + "\n"
               )
