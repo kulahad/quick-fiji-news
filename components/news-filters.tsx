@@ -1,6 +1,6 @@
 "use client";
 
-import { Filter, Search, X, Clock, MapPin } from "lucide-react";
+import { Filter, Search, Clock, MapPin } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose,
 } from "@/components/ui/sheet";
 import {
   Accordion,
@@ -58,6 +57,10 @@ interface NewsFiltersProps {
   setSearchQuery: (query: string) => void;
   sortOption: SortOption;
   setSortOption: (sort: SortOption) => void;
+  selectAllSources: () => void;
+  selectAllCategories: () => void;
+  activeFilterCount: number;
+  clearFilters: () => void;
 }
 
 export function NewsFilters({
@@ -69,22 +72,47 @@ export function NewsFilters({
   setSearchQuery,
   sortOption,
   setSortOption,
+  selectAllSources,
+  selectAllCategories,
+  activeFilterCount,
+  clearFilters,
 }: NewsFiltersProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const searchField = (
+    <div className="relative">
+      <Label htmlFor="article-search" className="sr-only">
+        Search articles
+      </Label>
+      <Search
+        aria-hidden="true"
+        className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"
+      />
+      <Input
+        id="article-search"
+        type="search"
+        placeholder="Search articles..."
+        className="pl-8 border-black dark:border-gray-800"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+    </div>
+  );
 
   const filterContent = (
     <div className="space-y-6">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search articles..."
-          className="pl-8 border-black dark:border-gray-800"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-      <Separator className="bg-black/20 dark:bg-white/20" />{" "}
+      {!isMobile && searchField}
+      {!isMobile && <Separator className="bg-black/20 dark:bg-white/20" />}
+      {activeFilterCount > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearFilters}
+          className="w-full justify-start"
+        >
+          Clear {activeFilterCount} active{" "}
+          {activeFilterCount === 1 ? "filter" : "filters"}
+        </Button>
+      )}
       <Accordion type="multiple" defaultValue={["sort"]} className="w-full">
         <AccordionItem value="sort" className="border-b-0">
           <AccordionTrigger className="font-heading py-2 hover:no-underline">
@@ -136,6 +164,16 @@ export function NewsFilters({
                 </div>
               ))}
             </div>
+            {selectedSources.length < SOURCES.length && (
+              <Button
+                variant="link"
+                size="sm"
+                onClick={selectAllSources}
+                className="mt-2 h-auto px-0"
+              >
+                Select all sources
+              </Button>
+            )}
           </AccordionContent>
         </AccordionItem>
         <AccordionItem value="categories" className="border-b-0">
@@ -161,6 +199,16 @@ export function NewsFilters({
                 </div>
               ))}
             </div>
+            {selectedCategories.length < CATEGORIES.length && (
+              <Button
+                variant="link"
+                size="sm"
+                onClick={selectAllCategories}
+                className="mt-2 h-auto px-0"
+              >
+                Select all categories
+              </Button>
+            )}
           </AccordionContent>
         </AccordionItem>
       </Accordion>
@@ -175,35 +223,32 @@ export function NewsFilters({
   if (isMobile) {
     return (
       <div className="flex flex-col space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search articles..."
-              className="pl-8 border-black dark:border-gray-800"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">{searchField}</div>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0">
-                <Filter className="h-4 w-4" />
+              <Button
+                variant="outline"
+                className="relative h-11 shrink-0 px-3"
+                aria-label={`Filters${activeFilterCount ? `, ${activeFilterCount} active` : ""}`}
+              >
+                <Filter aria-hidden="true" className="h-4 w-4" />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[85vw] sm:w-[385px]">
+            <SheetContent
+              side="left"
+              className="w-[85vw] overflow-y-auto pb-8 sm:w-[385px]"
+            >
               <SheetHeader className="mb-4">
                 <SheetTitle className="font-heading">Filters</SheetTitle>
               </SheetHeader>
               {filterContent}
-              <div className="absolute bottom-4 right-4">
-                <SheetClose asChild>
-                  <Button variant="outline" size="icon">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </SheetClose>
-              </div>
             </SheetContent>
           </Sheet>
         </div>

@@ -1,15 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Clock, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import { SOURCES } from "./news-filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useNews } from "../hooks/use-news";
-import { stripHtml, truncateText, formatVolumeInfo } from "../lib/textUtils";
-import { NewsCategory, NewsItem } from "@/types/news";
-import { Toaster, toast } from "sonner";
+import { stripHtml, truncateText } from "../lib/textUtils";
+import { NewsCategory } from "@/types/news";
+import { toast } from "sonner";
 import { formatDate } from "../lib/dateUtils";
-import Link from "next/link";
 
 // Helper function to normalize domain
 function normalizeDomain(domain: string): string {
@@ -66,12 +65,13 @@ export default function NewsFeed({
     loading,
     error,
     stale,
+    partial,
+    failedSources,
     lastUpdated,
     refetch,
     loadedSources,
     previousLoadedSources,
   } = useNews();
-  const toastShownRef = useRef<boolean>(false);
 
   // Periodically refetch to get any retry results
   useEffect(() => {
@@ -82,18 +82,6 @@ export default function NewsFeed({
     return () => clearInterval(interval);
   }, [refetch]);
 
-  // Show error via toast once
-  useEffect(() => {
-    if (error && !toastShownRef.current) {
-      toast.error("Unable to load the latest news", {
-        description:
-          "Please try refreshing the page or check your internet connection.",
-      });
-      toastShownRef.current = true;
-    } else if (!error) {
-      toastShownRef.current = false;
-    }
-  }, [error]);
   // Show source loading status
   useEffect(() => {
     const newlyLoadedSources = loadedSources.filter(
@@ -103,7 +91,7 @@ export default function NewsFeed({
 
     if (newlyLoadedSources.length > 0) {
       // Only show toast if all sources are loaded
-      if (loadedSources.length === sources.length) {
+      if (loadedSources.length >= sources.length) {
         toast.success(`Updated news feed`, {
           duration: 2000,
           position: "bottom-right",
@@ -117,15 +105,14 @@ export default function NewsFeed({
     .filter((item) => {
       // Source filtering with normalized domains
       const matchesSource =
-        sources.length === 0 || sources.includes(normalizeDomain(item.source));
+        sources.includes(normalizeDomain(item.source));
 
       // Category filtering
       const matchesCategory =
-        categories.length === 0 ||
-        (item.categories &&
+        item.categories &&
           item.categories.some((cat) =>
             categories.includes(cat as NewsCategory)
-          ));
+          );
 
       // Search filtering
       const matchesSearch = !searchQuery
@@ -163,7 +150,6 @@ export default function NewsFeed({
 
   return (
     <div className="space-y-8">
-      <Toaster />{" "}
       {loading && news.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[200px]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -172,47 +158,79 @@ export default function NewsFeed({
       ) : (
         <>
           <div className="flex items-center justify-between">
-            {!loading && news.length > 0 && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+            {news.length > 0 && (
+              <div
+                className="flex items-center gap-2 text-xs text-muted-foreground/70"
+                role="status"
+                aria-live="polite"
+              >
+                <CheckCircle2 aria-hidden="true" className="w-3.5 h-3.5" />
                 <span>
-                  {stale ? "Showing saved headlines" : "Last updated"}{" "}
-                  {lastUpdated ? formatDate(lastUpdated) : ""}
+                  {stale ? "Showing saved headlines" : "Last updated"}
+                  {!loading && lastUpdated ? ` ${formatDate(lastUpdated)}` : ""}
                 </span>
               </div>
             )}
             {loading && news.length > 0 && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground/50 ml-auto">
-                <Loader2 className="w-3 h-3 animate-spin" />
+              <div
+                className="ml-auto flex items-center gap-2 text-xs text-muted-foreground/70"
+                role="status"
+                aria-live="polite"
+              >
+                <Loader2 aria-hidden="true" className="w-3 h-3 animate-spin" />
                 <span>Refreshing...</span>
               </div>
             )}
           </div>
+          {partial && failedSources.length > 0 && (
+            <p
+              className="text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              Some sources couldn&apos;t refresh:{" "}
+              {failedSources
+                .map((source) => formatSource(source))
+                .join(", ")}
+              . Showing available headlines.
+            </p>
+          )}
+          {error && (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
           {filteredAndSortedNews.length === 0 && (
-            <div className="text-center text-muted-foreground">
-              No news found for the selected filters.
+            <div className="text-center text-muted-foreground" role="status">
+              {failedSources.length > 0 && news.length === 0
+                ? "News sources are temporarily unavailable. Please try again shortly."
+                : sources.length === 0
+                  ? "No sources selected. Select a source or use “Select all sources”."
+                  : categories.length === 0
+                    ? "No categories selected. Select a category or use “Select all categories”."
+                    : "No news found for the selected filters. Try changing your search or resetting filters."}
             </div>
           )}
           {filteredAndSortedNews.map((item) => (
             <article
               key={item.uniqueId}
-              className="group flex flex-col space-y-4 p-4 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 transition-all duration-200 hover:shadow-sm"
+              className="group flex flex-col space-y-4 rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/50 active:bg-muted focus-within:border-ring sm:p-5 sm:hover:shadow-sm"
             >
               <div className="space-y-2">
-                <h2 className="text-2xl font-bold tracking-tight">
+                <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
                   <a
                     href={item.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block transition-colors duration-200 group-hover:text-primary"
+                    className="inline-block rounded-sm transition-colors group-hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
                     {item.title}
                   </a>
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-md">
-                    <Clock className="w-3.5 h-3.5" />
-                    <time className="tabular-nums">
+                    <Clock aria-hidden="true" className="w-3.5 h-3.5" />
+                    <time dateTime={item.pubDate} className="tabular-nums">
                       {formatDate(item.pubDate)}
                     </time>
                   </div>
@@ -263,11 +281,15 @@ export default function NewsFeed({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200"
+                  className="min-h-11 group-hover:bg-primary group-hover:text-primary-foreground"
                   asChild
                 >
                   <a href={item.link} target="_blank" rel="noopener noreferrer">
-                    Read more <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                    Read on {formatSource(item.source)}
+                    <ExternalLink
+                      aria-hidden="true"
+                      className="w-3.5 h-3.5"
+                    />
                   </a>
                 </Button>
               </div>

@@ -35,12 +35,12 @@ const RSS_SOURCES = [
   "https://www.fbcnews.com.fj/feed/",
   "https://islandsbusiness.com/feed/",
   "https://fijilive.com/feed/",
-  "https://fijionenews.com.fj/feed/",
 ];
 
 const HTML_SOURCES = [
   "https://fijisun.com.fj/",
   "https://www.fijitimes.com.fj/",
+  "https://fijionenews.com.fj/",
 ];
 
 export const NEWS_SOURCES = [...RSS_SOURCES, ...HTML_SOURCES];
@@ -54,6 +54,8 @@ export interface SourceFetchResult {
   items: NewsItem[];
   error: string | null;
   durationMs: number;
+  lastUpdated: string | null;
+  stale: boolean;
 }
 
 interface SourceFailure {
@@ -282,6 +284,40 @@ function parseFijiSun(source: string, html: string, referenceTime: number) {
   return Array.from(stories.values());
 }
 
+function parseFijiOne(source: string, html: string, referenceTime: number) {
+  const $ = cheerio.load(html);
+  const stories = new Map<string, NewsItem>();
+
+  $(".ten_pad").each((_, card) => {
+    const cardElement = $(card);
+    const storyLink = cardElement.find("a[href]").first();
+    const link = getArticleUrl(source, storyLink.attr("href"));
+    const title = normalizeText(storyLink.find("h6").first().text());
+    const summary = normalizeText(
+      storyLink.find(".top_3_headline_excerpt").first().text()
+    );
+    const dateText = normalizeText(
+      cardElement
+        .find(".top_3_headline_category_hours span")
+        .last()
+        .text()
+    );
+    if (!link || !title || !summary) return;
+
+    const story = createScrapedItem(
+      source,
+      title,
+      link,
+      dateText,
+      summary,
+      referenceTime
+    );
+    if (story) stories.set(link, story);
+  });
+
+  return Array.from(stories.values());
+}
+
 async function fetchFijiTimesSummary(link: string): Promise<string> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), SOURCE_TIMEOUT);
@@ -398,6 +434,9 @@ async function parseScrapedPage(
   if (source === HTML_SOURCES[1]) {
     return parseFijiTimes(source, html, referenceTime);
   }
+  if (source === HTML_SOURCES[2]) {
+    return parseFijiOne(source, html, referenceTime);
+  }
   throw new Error(`No HTML scraper configured for ${source}`);
 }
 
@@ -510,8 +549,9 @@ async function refreshFeed(source: string): Promise<NewsItem[]> {
     const response = await fetch(source, {
       headers: {
         "User-Agent": "QuickFijiNews/1.0",
-        Accept:
-          "application/atom+xml, application/rss+xml, application/xml, text/xml, text/html",
+        Accept: HTML_SOURCES.includes(source)
+          ? "text/html,application/xhtml+xml"
+          : "application/atom+xml, application/rss+xml, application/xml, text/xml, text/html",
       },
       signal: controller.signal,
       cache: "no-store",
@@ -548,6 +588,8 @@ export function fetchSourceResult(
       items: cached.items,
       error: null,
       durationMs: 0,
+      lastUpdated: new Date(cached.fetchedAt).toISOString(),
+      stale: false,
     });
   }
 
@@ -557,6 +599,8 @@ export function fetchSourceResult(
       items: cached?.items ?? [],
       error: failure.error,
       durationMs: 0,
+      lastUpdated: cached ? new Date(cached.fetchedAt).toISOString() : null,
+      stale: true,
     });
   }
 
@@ -565,23 +609,38 @@ export function fetchSourceResult(
 
   const startedAt = Date.now();
   const request = refreshFeed(source)
-    .then((items) => ({
-      items,
-      error: null,
-      durationMs: Date.now() - startedAt,
-    }))
+    .then((items) => {
+      const updatedAt = sourceCache.get(source)?.fetchedAt ?? Date.now();
+      return {
+        items,
+        error: null,
+        durationMs: Date.now() - startedAt,
+        lastUpdated: new Date(updatedAt).toISOString(),
+        stale: false,
+      };
+    })
     .catch((error: unknown): SourceFetchResult => {
-      const message =
-        error instanceof Error ? error.message : "Unknown source error";
+      const timedOut = error instanceof Error && error.name === "AbortError";
+      const message = timedOut
+        ? `Source request timed out after ${SOURCE_TIMEOUT}ms`
+        : error instanceof Error
+          ? error.message
+          : "Unknown source error";
       sourceFailures.set(source, {
         retryAfter: Date.now() + SOURCE_RETRY_DELAY,
         error: message,
       });
-      console.error(`Unable to refresh news source ${source}:`, error);
+      if (timedOut) {
+        console.warn(`News source timed out after ${SOURCE_TIMEOUT}ms: ${source}`);
+      } else {
+        console.error(`Unable to refresh news source ${source}:`, error);
+      }
       return {
         items: cached?.items ?? [],
         error: message,
         durationMs: Date.now() - startedAt,
+        lastUpdated: cached ? new Date(cached.fetchedAt).toISOString() : null,
+        stale: true,
       };
     })
     .finally(() => {

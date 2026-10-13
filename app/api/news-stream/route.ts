@@ -1,5 +1,6 @@
 import { fetchLiveNews } from "@/lib/live-news";
-import { NEWS_SOURCES } from "@/lib/rssService";
+import type { LiveNewsSourceStatus } from "@/lib/live-news";
+import type { NewsItem } from "@/types/news";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,59 +10,71 @@ export async function GET() {
   let cancelled = false;
   const stream = new ReadableStream({
     async start(controller) {
-      try {
-        controller.enqueue(
-          encoder.encode(JSON.stringify({ type: "start" }) + "\n")
-        );
-
-        const { results } = await fetchLiveNews();
-        for (const [index, result] of results.entries()) {
-          if (cancelled) return;
-
-          const source = new URL(NEWS_SOURCES[index])
-            .hostname.replace(/^www\./, "");
-          if (result.items.length > 0) {
-            controller.enqueue(
-              encoder.encode(
-                JSON.stringify({
-                  type: "chunk",
-                  source,
-                  items: result.items,
-                }) + "\n"
-              )
-            );
-          }
-          if (result.error) {
-            controller.enqueue(
-              encoder.encode(
-                JSON.stringify({
-                  type: "error",
-                  source,
-                  error: "A news source is temporarily unavailable.",
-                }) + "\n"
-              )
-            );
-          }
+      const send = (event: Record<string, unknown>) => {
+        if (!cancelled) {
+          controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
         }
+      };
+
+      send({ type: "start" });
+      const sourceStatuses: LiveNewsSourceStatus[] = [];
+      const sourceItems = new Map<string, NewsItem[]>();
+
+      try {
+        const { partial, updatedAt } = await fetchLiveNews(
+          (source, result) => {
+            if (cancelled) return;
+
+            const sourceName = new URL(source).hostname.replace(/^www\./, "");
+            const status = {
+              source: sourceName,
+              error: result.error,
+              lastUpdated: result.lastUpdated,
+              stale: result.stale,
+            };
+            sourceStatuses.push(status);
+
+            if (result.items.length > 0) {
+              sourceItems.set(sourceName, result.items);
+              send({
+                type: "chunk",
+                source: sourceName,
+                items: result.items,
+                lastUpdated: result.lastUpdated,
+                stale: result.stale,
+              });
+            }
+
+            if (result.error) {
+              send({
+                type: "source",
+                ...status,
+                error: "A news source is temporarily unavailable.",
+              });
+            }
+          }
+        );
+        const items = Array.from(sourceItems.values()).flat();
+        const failedSources = sourceStatuses
+          .filter((status) => status.error)
+          .map((status) => status.source);
+
+        send({
+          type: "end",
+          items,
+          sources: sourceStatuses,
+          partial,
+          failedSources,
+          updatedAt,
+        });
       } catch (error) {
         console.error("Unable to stream news:", error);
-        if (!cancelled) {
-          controller.enqueue(
-            encoder.encode(
-              JSON.stringify({
-                type: "error",
-                error: "News is temporarily unavailable.",
-              }) + "\n"
-            )
-          );
-        }
+        send({
+          type: "error",
+          error: "News is temporarily unavailable.",
+        });
       } finally {
-        if (!cancelled) {
-          controller.enqueue(
-            encoder.encode(JSON.stringify({ type: "end" }) + "\n")
-          );
-          controller.close();
-        }
+        if (!cancelled) controller.close();
       }
     },
     cancel() {
