@@ -7,21 +7,21 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "The latest headlines from Fiji and the Pacific.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f8f7f3",
-    theme_color: "#f8f7f3",
+    background_color: "#fffaf0",
+    theme_color: "#123943",
     icons: [
       {
-        src: "/icon-192.png",
+        src: "/icon-192-v4.png",
         sizes: "192x192",
         type: "image/png",
       },
       {
-        src: "/icon-512.png",
+        src: "/icon-512-v4.png",
         sizes: "512x512",
         type: "image/png",
       },
       {
-        src: "/icon.svg",
+        src: "/icon-v4.svg",
         sizes: "any",
         type: "image/svg+xml",
       },

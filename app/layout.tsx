@@ -29,13 +29,22 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    icon: [
+      { url: "/favicon-v4.ico", sizes: "32x32" },
+      { url: "/icon-192-v4.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [
+      {
+        url: "/apple-touch-icon-v4.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f8f7f3",
+  themeColor: "#123943",
 };
 
 export default function RootLayout({

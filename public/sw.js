@@ -1,4 +1,4 @@
-const CACHE_NAME = "quick-fiji-news-shell-v1";
+const CACHE_NAME = "quick-fiji-news-shell-v4";
 const OFFLINE_PAGE = "/offline.html";
 
 self.addEventListener("install", (event) => {
@@ -8,9 +8,11 @@ self.addEventListener("install", (event) => {
       .then((cache) =>
         cache.addAll([
           OFFLINE_PAGE,
-          "/icon.svg",
-          "/icon-192.png",
-          "/icon-512.png",
+          "/icon-v4.svg",
+          "/icon-192-v4.png",
+          "/icon-512-v4.png",
+          "/apple-touch-icon-v4.png",
+          "/favicon-v4.ico",
         ])
       )
       .then(() => self.skipWaiting())

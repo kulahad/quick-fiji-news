@@ -42,6 +42,9 @@ export default function Home() {
         <div className="container px-4 md:px-6 lg:px-8 py-6">
           <div className="flex justify-center align-middle items-center mb-2 mx-autoS">
             <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl tracking-tighter mr-5">
+              <span role="img" aria-label="Fiji flag" className="mr-3">
+                🇫🇯
+              </span>
               Quick Fiji News
             </h1>
             <span>
