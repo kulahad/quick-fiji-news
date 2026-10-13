@@ -9,6 +9,8 @@ const ALL_SOURCES = [
   "islandsbusiness.com",
   "fijilive.com",
   "fijionenews.com.fj",
+  "fijisun.com.fj",
+  "fijitimes.com.fj",
 ];
 
 const ALL_CATEGORIES: NewsCategory[] = [
