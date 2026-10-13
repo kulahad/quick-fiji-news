@@ -82,6 +82,9 @@ export default function Home() {
           <p>
             © {today?.getFullYear() ?? ""} Quick Fiji News. All rights reserved.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Built by the Quick Fiji News team
+          </p>
         </div>
       </footer>
     </div>
