@@ -1,4 +1,4 @@
-const CACHE_NAME = "quick-fiji-news-shell-v4";
+const CACHE_NAME = "quick-fiji-news-shell-v5";
 const OFFLINE_PAGE = "/offline.html";
 
 self.addEventListener("install", (event) => {

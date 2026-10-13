@@ -3,7 +3,9 @@
 import { Suspense, useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { InstallPrompt } from "@/components/install-prompt";
 import NewsContainer from "@/components/news-container";
+import { SiteAttribution } from "@/components/site-attribution";
 import { calculateVolumeInfo } from "@/lib/textUtils";
 
 export const dynamic = "force-dynamic";
@@ -39,52 +41,57 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-black dark:border-gray-800">
-        <div className="container px-4 md:px-6 lg:px-8 py-6">
-          <div className="flex justify-center align-middle items-center mb-2 mx-autoS">
-            <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl tracking-tighter mr-5">
-              <span role="img" aria-label="Fiji flag" className="mr-3">
+        <div className="container px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+          <div className="mb-4 flex items-center justify-center gap-2 sm:gap-5">
+            <h1 className="font-heading text-center text-3xl leading-tight tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+              <span aria-hidden="true" className="mr-2 sm:mr-3">
                 🇫🇯
               </span>
               Quick Fiji News
             </h1>
-            <span>
-              <ThemeToggle />
-            </span>
+            <ThemeToggle />
           </div>
-          <div className="text-center mb-4">
-            <div className="text-xs uppercase tracking-widest mt-1">
+          <div className="mb-4 text-center">
+            <div className="mt-1 text-xs uppercase tracking-widest">
               {formattedDate ?? "\u00a0"}
             </div>
           </div>{" "}
-          <div className="flex justify-between items-center text-sm border-t border-b border-black dark:border-gray-800 py-2">
-            <div>
+          <div className="grid grid-cols-2 items-center gap-x-3 gap-y-1 border-y border-black py-2 text-xs dark:border-gray-800 sm:grid-cols-3 sm:text-sm">
+            <div className="tabular-nums">
               {today
                 ? `Vol. ${calculateVolumeInfo(today).volume} No. ${
                     calculateVolumeInfo(today).issueNumber
                   }`
                 : "\u00a0"}
             </div>
-            <div>Fiji&apos;s Premier News Aggregator</div>
-            <div>Daily Edition</div>
+            <div className="col-span-2 order-last text-center sm:col-span-1 sm:order-none">
+              Fiji&apos;s Premier News Aggregator
+            </div>
+            <div className="text-right">Daily Edition</div>
           </div>
         </div>
       </header>
       <main className="container px-4 md:px-6 lg:px-8 py-8">
-        <div className="border-b-2 border-black dark:border-gray-800 pb-2 mb-8">
-          <h2 className="font-heading text-3xl">Latest News</h2>
-        </div>
-        <Suspense fallback={<NewsFeedSkeleton />}>
-          <NewsContainer />
-        </Suspense>
+        <section aria-labelledby="latest-news-heading">
+          <div className="mb-8 flex items-center justify-between gap-3 border-b-2 border-black pb-2 dark:border-gray-800">
+            <h2 id="latest-news-heading" className="font-heading text-3xl">
+              Latest News
+            </h2>
+            <InstallPrompt />
+          </div>
+          <Suspense fallback={<NewsFeedSkeleton />}>
+            <NewsContainer />
+          </Suspense>
+        </section>
       </main>
       <footer className="border-t border-black dark:border-gray-800 py-6 mt-8">
         <div className="container px-4 md:px-6 lg:px-8 text-center text-sm">
           <p>
             © {today?.getFullYear() ?? ""} Quick Fiji News. All rights reserved.
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Built by the Quick Fiji News team
-          </p>
+          <div className="mt-2">
+            <SiteAttribution className="items-center"/>
+          </div>
         </div>
       </footer>
     </div>
