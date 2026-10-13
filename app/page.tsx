@@ -84,7 +84,7 @@ export default function Home() {
             © {today?.getFullYear() ?? ""} Quick Fiji News. All rights reserved.
           </p>
           <div className="mt-2">
-            <SiteAttribution />
+            <SiteAttribution className="items-center"/>
           </div>
         </div>
       </footer>
