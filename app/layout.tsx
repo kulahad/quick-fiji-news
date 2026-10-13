@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/react";
 import ServiceWorkerRegistration from "@/components/service-worker-registration";
+import PwaInstallPrompt from "@/components/pwa-install-prompt";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
   description:
     "Stay informed with the latest news from Fiji and around the world",
   applicationName: "Quick Fiji News",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Quick Fiji News",
@@ -68,6 +70,7 @@ export default function RootLayout({
           {" "}
           <ServiceWorkerRegistration />
           {children}
+          <PwaInstallPrompt />
           <Toaster />
           <Analytics />
         </ThemeProvider>
