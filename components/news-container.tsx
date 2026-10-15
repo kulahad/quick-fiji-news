@@ -6,20 +6,22 @@ import { NewsFilters } from "./news-filters";
 
 const ALL_SOURCES = [
   "fbcnews.com.fj",
-  "islandsbusiness.com",
+  "fijivillage.com",
   "fijilive.com",
   "fijionenews.com.fj",
   "fijisun.com.fj",
   "fijitimes.com.fj",
+  "islandsbusiness.com",
 ];
 
 const ALL_CATEGORIES: NewsCategory[] = [
+  "Politics",
   "Local",
-  "Technology",
   "Business",
   "Health",
-  "World",
   "Sports",
+  "Technology",
+  "World",
 ];
 
 export default function NewsContainer() {

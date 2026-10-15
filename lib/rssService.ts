@@ -209,7 +209,7 @@ function createScrapedItem(
     content: summary,
     source: sourceName,
     guid: link,
-    categories: categorizeText(title, summary),
+    categories: categorizeText(title, summary, link),
     volume: {
       number: `${parsedDate.getUTCFullYear()}-${String(
         parsedDate.getUTCMonth() + 1
@@ -419,6 +419,54 @@ async function parseFijiTimes(
   });
 }
 
+async function parseFijiVillage(source: string, html: string, referenceTime: number) {
+  const $ = cheerio.load(html);
+  const stories = new Map<string, NewsItem>();
+
+  $(".fv-link-title").each((_, linkElement) => {
+    const headingLink = $(linkElement);
+    const link = getArticleUrl(source, headingLink.attr("href"));
+    if (!link) return;
+
+    const title = normalizeText(headingLink.text());
+    const container = headingLink.closest("article").length
+      ? headingLink.closest("article")
+      : headingLink.closest(".card-body");
+    const intro =
+      normalizeText(container.find("p.fv-hero-intro, p.fv-card-intro, p.fv-list-intro, p.fv-sport-compact-intro").first().text()) ||
+      normalizeText(
+        container
+          .find("p")
+          .filter((_, paragraph) => {
+            const text = normalizeText($(paragraph).text());
+            return (
+              text.length > 18 &&
+              !/^(?:about\s+)?\d+\s+(?:minute|hour|day|week)s?\s+ago$/i.test(text) &&
+              !/^\d+\s+(?:hours?|minutes?)\s+ago$/i.test(text)
+            );
+          })
+          .first()
+          .text()
+      );
+    const metaDate = normalizeText(
+      container
+        .find(
+          ".fv-meta, .fv-sport-compact-meta, .fv-meta small, .fv-sport-compact-meta small"
+        )
+        .first()
+        .text()
+    );
+    const meta =
+      metaDate ||
+      normalizeText(container.text().match(/(?:about\s+)?\d+\s+(?:minute|hour|day|week)s?\s+ago|(?:just now|today|yesterday)/i)?.[0] ?? "");
+    const summary = intro;
+    const story = createScrapedItem(source, title, link, meta, summary, referenceTime);
+    if (story) stories.set(link, story);
+  });
+
+  return Array.from(stories.values());
+}
+
 async function parseScrapedPage(
   source: string,
   html: string
@@ -439,6 +487,7 @@ const HTML_PARSER_REGISTRY: Record<
 > = {
   "https://fijisun.com.fj/": parseFijiSun,
   "https://www.fijitimes.com.fj/": parseFijiTimes,
+  "https://www.fijivillage.com/": parseFijiVillage,
 };
 
 export const HTML_SOURCES = Object.keys(HTML_PARSER_REGISTRY);
@@ -523,7 +572,7 @@ function parseFeed(source: string, feedContent: string): NewsItem[] {
       (parsedDate.getTime() - startOfMonth.getTime()) / 86_400_000
     );
     const mappedCategories = categorizeFromRssCategories(categories);
-    const fallbackCategories = categorizeText(title, content);
+    const fallbackCategories = categorizeText(title, content, link);
 
     return [
       {

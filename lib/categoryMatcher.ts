@@ -142,63 +142,95 @@ export const CATEGORY_RULES: Record<
   },
 };
 
-function getKeywordMatches(text: string, keywords: string[]): number {
-  const normalizedText = text.toLowerCase();
-  return keywords.reduce(
-    (count, keyword) =>
-      count + (normalizedText.includes(keyword.toLowerCase()) ? 1 : 0),
-    0
-  );
-}
-
 function getContextMatches(text: string, patterns?: RegExp[]): number {
-  if (!patterns) return 0;
-  return patterns.reduce(
-    (count, pattern) => count + (pattern.test(text) ? 1 : 0),
-    0
-  );
+  if (!patterns || patterns.length === 0) return 0;
+  return patterns.reduce((count, pattern) => {
+    pattern.lastIndex = 0;
+    return count + (pattern.test(text) ? 1 : 0);
+  }, 0);
 }
 
-export function categorizeText(title: string, content: string): NewsCategory[] {
-  const text = `${title} ${content}`.toLowerCase();
+function escapeKeyword(keyword: string) {
+  return keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\\\$&");
+}
+
+function getWholeWordMatches(text: string, keywords: string[]): number {
+  const normalizedText = text.toLowerCase();
+  return keywords.reduce((count, keyword) => {
+    const regex = new RegExp(`\\b${escapeKeyword(keyword.toLowerCase())}\\b`, "gi");
+    return count + (normalizedText.match(regex)?.length ?? 0);
+  }, 0);
+}
+
+function pathCategoryBonus(pathname: string): Record<Exclude<NewsCategory, "All">, number> {
+  const pathnameLower = pathname.toLowerCase();
+  const boosts = Object.fromEntries(
+    Object.keys(CATEGORY_RULES).map((category) => [category, 0])
+  ) as Record<Exclude<NewsCategory, "All">, number>;
+
+  function add(category: Exclude<NewsCategory, "All">) {
+    boosts[category] = (boosts[category] ?? 0) + 3;
+  }
+
+  if (pathnameLower.includes("/sport") || pathnameLower.includes("/rugby") || pathnameLower.includes("/football")) add("Sports");
+  if (pathnameLower.includes("/business") || pathnameLower.includes("/economy")) add("Business");
+  if (pathnameLower.includes("/politics")) add("Politics");
+  if (pathnameLower.includes("/health")) add("Health");
+  if (pathnameLower.includes("/technology") || pathnameLower.includes("/tech")) add("Technology");
+  if (pathnameLower.includes("/world")) add("World");
+
+  return boosts;
+}
+
+export function categorizeText(title: string, content: string, link?: string): NewsCategory[] {
+  const normalizedTitle = title.toLowerCase();
+  const normalizedContent = content.toLowerCase();
+  const text = `${normalizedTitle} ${normalizedContent}`;
   const scores = new Map<NewsCategory, number>();
+
+  const boosts = link ? pathCategoryBonus(new URL(link).pathname) : undefined;
 
   Object.entries(CATEGORY_RULES).forEach(([category, rule]) => {
     const categoryName = category as Exclude<NewsCategory, "All">;
 
-    // Check exclusions first
-    if (
-      rule.excludeIfContains?.some((term) => text.includes(term.toLowerCase()))
-    ) {
+    if (rule.excludeIfContains?.some((term) => normalizedTitle.includes(term.toLowerCase()))) {
       return;
     }
 
-    const keywordMatches = getKeywordMatches(text, rule.keywords);
-    const contextMatches = getContextMatches(text, rule.contextPatterns);
+    // Title is a far better discriminator than the RSS strapline, so weight it hard.
+    const titleKeywordMatches = getWholeWordMatches(normalizedTitle, rule.keywords);
+    const contentKeywordMatches = getWholeWordMatches(normalizedContent, rule.keywords);
+    const titleContextMatches = getContextMatches(normalizedTitle, rule.contextPatterns);
+    const contentContextMatches = getContextMatches(normalizedContent, rule.contextPatterns);
 
-    // Skip if we require multiple matches and don't have them
-    if (rule.requireMultipleMatches && keywordMatches < 2) {
-      return;
-    }
+    const score =
+      (titleKeywordMatches * 2.0 + contentKeywordMatches * 0.6) * 0.8 +
+      (titleContextMatches * 2.5 + contentContextMatches * 1.0) * 1.2 +
+      (boosts ? boosts[categoryName] ?? 0 : 0);
 
-    // Calculate score based on matches and weight
-    const score = (keywordMatches + contextMatches * 1.5) * rule.weight;
-    if (score > 0.6) {
-      // Increased threshold for category inclusion
+    if (score > 0.75) {
       scores.set(categoryName, score);
     }
   });
 
-  // If no categories matched, default to Local for Fiji news
   if (scores.size === 0 && text.includes("fiji")) {
     return ["Local"];
   }
 
-  // Sort by score and take top 2 categories
-  return Array.from(scores.entries())
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 2) // Limit to top 2 categories
-    .map(([category]) => category);
+  const sorted = Array.from(scores.entries()).sort(([, a], [, b]) => b - a);
+  const result: NewsCategory[] = sorted.length ? [sorted[0][0]] : [];
+  if (sorted[1] && sorted[0] != null && sorted[1][1] > sorted[0][1] * 0.85) {
+    result.push(sorted[1][0]);
+  }
+
+  if (result.length === 0) {
+    const sourceHost = link ? new URL(link).hostname.toLowerCase() : "";
+    const looksLikeFijiPublisher =
+      sourceHost.endsWith(".com.fj") || sourceHost.includes("fiji");
+    return looksLikeFijiPublisher ? ["Local"] : ["World"];
+  }
+
+  return result;
 }
 
 export function categorizeFromRssCategories(
