@@ -15,12 +15,13 @@ const ALL_SOURCES = [
 ];
 
 const ALL_CATEGORIES: NewsCategory[] = [
+  "Politics",
   "Local",
-  "Technology",
   "Business",
   "Health",
-  "World",
   "Sports",
+  "Technology",
+  "World",
 ];
 
 export default function NewsContainer() {

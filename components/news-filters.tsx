@@ -39,7 +39,6 @@ export const SOURCES = [
 ] as const;
 
 const CATEGORIES: NewsCategory[] = [
-  "All",
   "Politics",
   "Local",
   "Business",
