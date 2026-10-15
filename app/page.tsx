@@ -62,7 +62,7 @@ export default function Home() {
                 ? `Vol. ${calculateVolumeInfo(today).volume} No. ${
                     calculateVolumeInfo(today).issueNumber
                   }`
-                : "\u00a0"}
+                : "Vol. — No. —"}
             </div>
             <div className="col-span-2 order-last text-center sm:col-span-1 sm:order-none">
               Fiji&apos;s Premier News Aggregator
@@ -87,7 +87,7 @@ export default function Home() {
       <footer className="border-t border-black dark:border-gray-800 py-6 mt-8">
         <div className="container px-4 md:px-6 lg:px-8 text-center text-sm">
           <p>
-            © {today?.getFullYear() ?? ""} Quick Fiji News. All rights reserved.
+            © {today?.getFullYear() ?? new Date().getFullYear()} Quick Fiji News. All rights reserved.
           </p>
           <div className="mt-2">
             <SiteAttribution className="items-center"/>
