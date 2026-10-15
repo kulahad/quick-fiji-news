@@ -26,23 +26,8 @@ function formatSource(source: string): string {
 }
 
 // Helper function to get badge style based on category
-function getBadgeStyle(category: string): string {
-  switch (category) {
-    case "Local":
-      return "bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 dark:hover:bg-blue-500/30";
-    case "Technology":
-      return "bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 dark:hover:bg-purple-500/30";
-    case "Business":
-      return "bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300 hover:bg-green-500/20 dark:hover:bg-green-500/30";
-    case "Health":
-      return "bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300 hover:bg-red-500/20 dark:hover:bg-red-500/30";
-    case "World":
-      return "bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 dark:hover:bg-amber-500/30";
-    case "Sports":
-      return "bg-orange-500/10 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 hover:bg-orange-500/20 dark:hover:bg-orange-500/30";
-    default:
-      return "bg-gray-500/10 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300 hover:bg-gray-500/20 dark:hover:bg-gray-500/30";
-  }
+function getBadgeStyle(_category: string): string {
+  return "bg-muted text-muted-foreground hover:bg-muted/80";
 }
 
 type SortOption = "latest" | "local-first";
@@ -214,7 +199,7 @@ export default function NewsFeed({
           {filteredAndSortedNews.map((item) => (
             <article
               key={item.uniqueId}
-              className="group flex flex-col space-y-4 rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/50 active:bg-muted focus-within:border-ring sm:p-5 sm:hover:shadow-sm"
+              className="group flex flex-col space-y-3 border-b border-border/70 px-0 py-6 last:border-b-0 transition-colors hover:bg-muted/30 focus-within:outline-none"
             >
               <div className="space-y-2">
                 <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
@@ -225,6 +210,7 @@ export default function NewsFeed({
                     className="inline-block rounded-sm transition-colors group-hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
                     {item.title}
+                    <span className="sr-only"> (opens in new tab)</span>
                   </a>
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -273,7 +259,7 @@ export default function NewsFeed({
                 </div>
               </div>
 
-              <div className="text-muted-foreground/90 leading-relaxed">
+              <div className="max-w-prose text-[0.95rem] leading-7 text-muted-foreground/90">
                 {truncateText(stripHtml(item.content || ""), 300)}
               </div>
 
