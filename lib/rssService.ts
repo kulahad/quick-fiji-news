@@ -429,14 +429,35 @@ async function parseFijiVillage(source: string, html: string, referenceTime: num
     if (!link) return;
 
     const title = normalizeText(headingLink.text());
-    const container = headingLink.closest(".card-body").length
-      ? headingLink.closest(".card-body")
-      : headingLink.closest("div");
-    const intro = normalizeText(
-      container.find("p.fv-card-intro, p.fv-sport-compact-intro, p").first().text()
+    const container = headingLink.closest("article").length
+      ? headingLink.closest("article")
+      : headingLink.closest(".card-body");
+    const intro =
+      normalizeText(container.find("p.fv-hero-intro, p.fv-card-intro, p.fv-list-intro, p.fv-sport-compact-intro").first().text()) ||
+      normalizeText(
+        container
+          .find("p")
+          .filter((_, paragraph) => {
+            const text = normalizeText($(paragraph).text());
+            return (
+              text.length > 18 &&
+              !/^(?:about\s+)?\d+\s+(?:minute|hour|day|week)s?\s+ago$/i.test(text) &&
+              !/^\d+\s+(?:hours?|minutes?)\s+ago$/i.test(text)
+            );
+          })
+          .first()
+          .text()
+      );
+    const metaDate = normalizeText(
+      container
+        .find(
+          ".fv-meta, .fv-sport-compact-meta, .fv-meta small, .fv-sport-compact-meta small"
+        )
+        .first()
+        .text()
     );
     const meta =
-      normalizeText(container.find("p.fv-meta, p.fv-sport-compact-meta").first().text()) ||
+      metaDate ||
       normalizeText(container.text().match(/(?:about\s+)?\d+\s+(?:minute|hour|day|week)s?\s+ago|(?:just now|today|yesterday)/i)?.[0] ?? "");
     const summary = intro;
     const story = createScrapedItem(source, title, link, meta, summary, referenceTime);
