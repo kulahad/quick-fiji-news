@@ -25,3 +25,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# generated static headlines snapshot (published separately, e.g. GitHub Pages)
+public/news/latest.json

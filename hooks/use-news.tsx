@@ -21,6 +21,9 @@ interface CachedNews extends NewsApiResponse {
 }
 
 const NEWS_CACHE_KEY = "quick-fiji-news:cached-headlines";
+const STATIC_NEWS_URL =
+  process.env.NEXT_PUBLIC_NEWS_SNAPSHOT_URL?.trim() || "/news/latest.json";
+const LIVE_NEWS_URL = "/api/news-stream";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
@@ -112,6 +115,31 @@ function mergeSourceStatus(
   return Array.from(statuses.values());
 }
 
+function applyStaticPayload(payload: NewsApiResponse): {
+  items: NewsItem[];
+  sources: NewsSourceStatus[];
+  partial: boolean;
+  failedSources: string[];
+  lastUpdated: string;
+  stale: boolean;
+} {
+  const sortedItems = sortNews(payload.items);
+  const sources = payload.sources ?? [];
+  const failedSources = payload.failedSources ?? [];
+  const partial = payload.partial ?? false;
+  const stale = partial || sources.some((source) => source.stale);
+  const lastUpdated = payload.updatedAt ?? new Date().toISOString();
+
+  return {
+    items: sortedItems,
+    sources,
+    partial,
+    failedSources,
+    lastUpdated,
+    stale,
+  };
+}
+
 export function useNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +165,28 @@ export function useNews() {
     const statuses = new Map<string, NewsSourceStatus>();
     let lineBuffer = "";
     let ended = false;
+
+    const applyStatic = (payload: NewsApiResponse) => {
+      const resolved = applyStaticPayload(payload);
+      hasFreshResponseRef.current = true;
+      setPreviousLoadedSources(Array.from(loadedSourcesRef.current));
+      setNews(resolved.items);
+      setLoadedSources(new Set(resolved.items.map((item) => item.source)));
+      setSourceStatuses(resolved.sources);
+      setPartial(resolved.partial);
+      setStale(resolved.stale);
+      setFailedSources(resolved.failedSources);
+      setLastUpdated(resolved.lastUpdated);
+      setError(null);
+      saveCachedNews({
+        items: resolved.items,
+        updatedAt: resolved.lastUpdated,
+        partial: resolved.partial,
+        failedSources: resolved.failedSources,
+        sources: resolved.sources,
+      });
+      ended = true;
+    };
 
     const applyEvent = (value: unknown) => {
       if (!isRecord(value) || typeof value.type !== "string") {
@@ -236,51 +286,74 @@ export function useNews() {
     };
 
     try {
-      const response = await fetch("/api/news-stream", { signal });
-      if (!response.ok) {
-        throw new Error(`News service returned HTTP ${response.status}`);
+      // Prefer the cache-friendly static JSON built by GitHub Actions.
+      // It avoids repeated server-side scraping on every headless client request.
+      const staticResponse = await fetch(STATIC_NEWS_URL, {
+        signal,
+        cache: "no-store",
+      });
+      if (!staticResponse.ok) {
+        throw new Error(`Static news snapshot returned HTTP ${staticResponse.status}`);
       }
-      if (!response.body) {
-        throw new Error("News service returned an empty response stream");
+      const payload = await staticResponse.json();
+      if (!isNewsApiResponse(payload) || typeof payload.updatedAt !== "string") {
+        throw new Error("Static news snapshot returned invalid data");
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        lineBuffer += decoder.decode(value, { stream: !done });
-        const lines = lineBuffer.split("\n");
-        lineBuffer = lines.pop() ?? "";
-        for (const line of lines) {
-          if (line.trim()) applyEvent(JSON.parse(line) as unknown);
-        }
-        if (done) break;
-      }
-      if (lineBuffer.trim()) applyEvent(JSON.parse(lineBuffer) as unknown);
-      if (!ended) throw new Error("News stream ended before completion");
-    } catch (fetchError) {
-      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+      applyStatic(payload);
+      ended = true;
+    } catch (staticError) {
+      if (staticError instanceof Error && staticError.name === "AbortError") {
         return;
       }
 
-      console.error("Unable to load news:", fetchError);
-      const cached = readCachedNews();
-      if (cached) {
-        const sortedNews = sortNews(cached.items);
-        setPreviousLoadedSources(Array.from(loadedSourcesRef.current));
-        setNews(sortedNews);
-        setLoadedSources(new Set(sortedNews.map((item) => item.source)));
-        setSourceStatuses(cached.sources ?? []);
-        setPartial(cached.partial ?? false);
-        setFailedSources(cached.failedSources ?? []);
-        setStale(true);
-        setLastUpdated(cached.updatedAt);
-        setError(null);
-      } else {
-        setStale(true);
-        setError(
-          "News could not be refreshed. Previously loaded stories remain available."
-        );
+      try {
+        const response = await fetch(LIVE_NEWS_URL, { signal });
+        if (!response.ok) {
+          throw new Error(`News service returned HTTP ${response.status}`);
+        }
+        if (!response.body) {
+          throw new Error("News service returned an empty response stream");
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          lineBuffer += decoder.decode(value, { stream: !done });
+          const lines = lineBuffer.split("\n");
+          lineBuffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (line.trim()) applyEvent(JSON.parse(line) as unknown);
+          }
+          if (done) break;
+        }
+        if (lineBuffer.trim()) applyEvent(JSON.parse(lineBuffer) as unknown);
+        if (!ended) throw new Error("News stream ended before completion");
+      } catch (fetchError) {
+        if (fetchError instanceof Error && fetchError.name === "AbortError") {
+          return;
+        }
+
+        console.error("Unable to load news:", fetchError);
+        const cached = readCachedNews();
+        if (cached) {
+          const sortedNews = sortNews(cached.items);
+          setPreviousLoadedSources(Array.from(loadedSourcesRef.current));
+          setNews(sortedNews);
+          setLoadedSources(new Set(sortedNews.map((item) => item.source)));
+          setSourceStatuses(cached.sources ?? []);
+          setPartial(cached.partial ?? false);
+          setFailedSources(cached.failedSources ?? []);
+          setStale(true);
+          setLastUpdated(cached.updatedAt);
+          setError(null);
+        } else {
+          setStale(true);
+          setError(
+            "News could not be refreshed. Previously loaded stories remain available."
+          );
+        }
       }
     } finally {
       setLoading(false);
