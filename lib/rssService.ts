@@ -419,6 +419,33 @@ async function parseFijiTimes(
   });
 }
 
+async function parseFijiVillage(source: string, html: string, referenceTime: number) {
+  const $ = cheerio.load(html);
+  const stories = new Map<string, NewsItem>();
+
+  $(".fv-link-title").each((_, linkElement) => {
+    const headingLink = $(linkElement);
+    const link = getArticleUrl(source, headingLink.attr("href"));
+    if (!link) return;
+
+    const title = normalizeText(headingLink.text());
+    const container = headingLink.closest(".card-body").length
+      ? headingLink.closest(".card-body")
+      : headingLink.closest("div");
+    const intro = normalizeText(
+      container.find("p.fv-card-intro, p.fv-sport-compact-intro, p").first().text()
+    );
+    const meta =
+      normalizeText(container.find("p.fv-meta, p.fv-sport-compact-meta").first().text()) ||
+      normalizeText(container.text().match(/(?:about\s+)?\d+\s+(?:minute|hour|day|week)s?\s+ago|(?:just now|today|yesterday)/i)?.[0] ?? "");
+    const summary = intro;
+    const story = createScrapedItem(source, title, link, meta, summary, referenceTime);
+    if (story) stories.set(link, story);
+  });
+
+  return Array.from(stories.values());
+}
+
 async function parseScrapedPage(
   source: string,
   html: string
@@ -439,6 +466,7 @@ const HTML_PARSER_REGISTRY: Record<
 > = {
   "https://fijisun.com.fj/": parseFijiSun,
   "https://www.fijitimes.com.fj/": parseFijiTimes,
+  "https://www.fijivillage.com/": parseFijiVillage,
 };
 
 export const HTML_SOURCES = Object.keys(HTML_PARSER_REGISTRY);
