@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Clock, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import { SOURCES } from "./news-filters";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ export default function NewsFeed({
     return () => clearInterval(interval);
   }, [refetch]);
 
-  const filteredAndSortedNews = news
+  const filteredAndSortedNews = useMemo(() => news
     .filter((item) => {
       // Source filtering with normalized domains
       const matchesSource =
@@ -112,7 +112,9 @@ export default function NewsFeed({
     .map((item, index) => ({
       ...item,
       uniqueId: `${item.guid}-${item.source}-${index}`.replace(/\s+/g, "-"),
-    }));
+    })),
+    [news, sources, categories, searchQuery, sortOption]
+  );
 
   return (
     <div className="space-y-8">
@@ -180,7 +182,7 @@ export default function NewsFeed({
           {filteredAndSortedNews.map((item) => (
             <article
               key={item.uniqueId}
-              className="group flex flex-col space-y-4 rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/50 active:bg-muted focus-within:border-ring sm:p-5 sm:hover:shadow-sm"
+              className="group flex flex-col space-y-4 rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/50 active:bg-muted focus-within:border-ring sm:p-5 sm:hover:shadow-sm [content-visibility:auto] [contain-intrinsic-size:auto_260px]"
             >
               <div className="space-y-2">
                 <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
