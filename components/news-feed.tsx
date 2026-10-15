@@ -180,7 +180,7 @@ export default function NewsFeed({
           {filteredAndSortedNews.map((item) => (
             <article
               key={item.uniqueId}
-              className="group flex flex-col space-y-3 border-b border-border/70 px-0 py-6 last:border-b-0 transition-colors hover:bg-muted/30 focus-within:outline-none"
+              className="group flex flex-col space-y-4 rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/50 active:bg-muted focus-within:border-ring sm:p-5 sm:hover:shadow-sm"
             >
               <div className="space-y-2">
                 <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
