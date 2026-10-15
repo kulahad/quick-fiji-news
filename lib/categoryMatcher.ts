@@ -223,7 +223,14 @@ export function categorizeText(title: string, content: string, link?: string): N
     result.push(sorted[1][0]);
   }
 
-  return result.length === 0 ? ["World"] : result;
+  if (result.length === 0) {
+    const sourceHost = link ? new URL(link).hostname.toLowerCase() : "";
+    const looksLikeFijiPublisher =
+      sourceHost.endsWith(".com.fj") || sourceHost.includes("fiji");
+    return looksLikeFijiPublisher ? ["Local"] : ["World"];
+  }
+
+  return result;
 }
 
 export function categorizeFromRssCategories(
