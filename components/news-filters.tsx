@@ -222,7 +222,7 @@ export function NewsFilters({
 
   if (isMobile) {
     return (
-      <div className="flex flex-col space-y-4">
+      <div className="sticky top-0 z-30 -mx-4 mb-4 flex flex-col space-y-3 bg-background/95 px-4 py-3 backdrop-blur-xl border-b border-border/60">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">{searchField}</div>
           <Sheet>
