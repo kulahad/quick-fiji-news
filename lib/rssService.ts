@@ -35,6 +35,7 @@ const RSS_SOURCES = [
   "https://www.fbcnews.com.fj/feed/",
   "https://islandsbusiness.com/feed/",
   "https://fijilive.com/feed/",
+  "https://fijionenews.com.fj/feed/",
 ];
 
 // HTML parsers are registered at the bottom of this module (see HTML_PARSER_REGISTRY).
@@ -438,7 +439,6 @@ const HTML_PARSER_REGISTRY: Record<
 > = {
   "https://fijisun.com.fj/": parseFijiSun,
   "https://www.fijitimes.com.fj/": parseFijiTimes,
-  "https://fijionenews.com.fj/": parseFijiOne,
 };
 
 export const HTML_SOURCES = Object.keys(HTML_PARSER_REGISTRY);
