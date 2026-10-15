@@ -4,24 +4,33 @@ on:
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build-news-json.ts"
+      - "lib/live-news.ts"
+      - "lib/rssService.ts"
+      - ".github/workflows/news-static.yml"
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: static-news-json
+  group: pages
   cancel-in-progress: false
 
 jobs:
   refresh-news:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -38,15 +47,14 @@ jobs:
       - name: Build static news JSON
         run: pnpm build:json
 
-      - name: Commit refreshed snapshot (if any)
-        run: |
-          if git diff --quiet -- public/news/latest.json; then
-            echo "No headline changes to commit."
-            exit 0
-          fi
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/news/latest.json
-          git commit -m "chore(news): refresh static headlines [skip ci]"
-          git push
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./public/news
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
