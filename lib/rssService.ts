@@ -37,13 +37,8 @@ const RSS_SOURCES = [
   "https://fijilive.com/feed/",
 ];
 
-const HTML_SOURCES = [
-  "https://fijisun.com.fj/",
-  "https://www.fijitimes.com.fj/",
-  "https://fijionenews.com.fj/",
-];
-
-export const NEWS_SOURCES = [...RSS_SOURCES, ...HTML_SOURCES];
+// HTML parsers are registered at the bottom of this module (see HTML_PARSER_REGISTRY).
+// Keep this declaration minimal so adding a site does not require editing an index.
 
 interface SourceCacheEntry {
   items: NewsItem[];
@@ -428,17 +423,26 @@ async function parseScrapedPage(
   html: string
 ): Promise<NewsItem[]> {
   const referenceTime = Date.now();
-  if (source === HTML_SOURCES[0]) {
-    return parseFijiSun(source, html, referenceTime);
+  const scraper = HTML_PARSER_REGISTRY?.[source];
+  if (!scraper) {
+    throw new Error(`No HTML scraper configured for ${source}`);
   }
-  if (source === HTML_SOURCES[1]) {
-    return parseFijiTimes(source, html, referenceTime);
-  }
-  if (source === HTML_SOURCES[2]) {
-    return parseFijiOne(source, html, referenceTime);
-  }
-  throw new Error(`No HTML scraper configured for ${source}`);
+  return scraper(source, html, referenceTime);
 }
+
+const HTML_PARSER_REGISTRY: Record<
+  string,
+  (source: string, html: string, referenceTime: number) =>
+    | NewsItem[]
+    | Promise<NewsItem[]>
+> = {
+  "https://fijisun.com.fj/": parseFijiSun,
+  "https://www.fijitimes.com.fj/": parseFijiTimes,
+  "https://fijionenews.com.fj/": parseFijiOne,
+};
+
+export const HTML_SOURCES = Object.keys(HTML_PARSER_REGISTRY);
+export const NEWS_SOURCES = [...RSS_SOURCES, ...HTML_SOURCES];
 
 async function readSourceBody(
   response: Response,
@@ -562,9 +566,10 @@ async function refreshFeed(source: string): Promise<NewsItem[]> {
     }
 
     const feedContent = await readSourceBody(response, source);
-    const items = HTML_SOURCES.includes(source)
-      ? await parseScrapedPage(source, feedContent)
-      : parseFeed(source, feedContent);
+    const items =
+      HTML_PARSER_REGISTRY && Object.hasOwn(HTML_PARSER_REGISTRY, source)
+        ? await parseScrapedPage(source, feedContent)
+        : parseFeed(source, feedContent);
     if (items.length === 0) {
       throw new Error(`Source contained no valid news items: ${source}`);
     }
