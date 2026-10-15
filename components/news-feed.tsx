@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useNews } from "../hooks/use-news";
 import { stripHtml, truncateText } from "../lib/textUtils";
 import { NewsCategory } from "@/types/news";
-import { toast } from "sonner";
+
 import { formatDate } from "../lib/dateUtils";
 
 // Helper function to normalize domain
@@ -66,25 +66,6 @@ export default function NewsFeed({
 
     return () => clearInterval(interval);
   }, [refetch]);
-
-  // Show source loading status
-  useEffect(() => {
-    const newlyLoadedSources = loadedSources.filter(
-      (source) =>
-        !previousLoadedSources.includes(source) && sources.includes(source)
-    );
-
-    if (newlyLoadedSources.length > 0) {
-      // Only show toast if all sources are loaded
-      if (loadedSources.length >= sources.length) {
-        toast.success(`Updated news feed`, {
-          duration: 2000,
-          position: "bottom-right",
-          className: "bg-muted/80",
-        });
-      }
-    }
-  }, [loadedSources, previousLoadedSources, sources]);
 
   const filteredAndSortedNews = news
     .filter((item) => {
@@ -145,7 +126,7 @@ export default function NewsFeed({
           <div className="flex items-center justify-between">
             {news.length > 0 && (
               <div
-                className="flex items-center gap-2 text-xs text-muted-foreground/70"
+                className="flex items-center gap-2 text-xs text-muted-foreground/70 transition-opacity duration-150"
                 role="status"
                 aria-live="polite"
               >
@@ -158,7 +139,7 @@ export default function NewsFeed({
             )}
             {loading && news.length > 0 && (
               <div
-                className="ml-auto flex items-center gap-2 text-xs text-muted-foreground/70"
+                className="ml-auto flex items-center gap-2 text-xs text-muted-foreground/70 transition-opacity duration-150"
                 role="status"
                 aria-live="polite"
               >

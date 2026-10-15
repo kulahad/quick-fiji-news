@@ -40,7 +40,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-black dark:border-gray-800">
+      <header className="site-header border-b border-black/80 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75 dark:border-gray-800/80 dark:bg-background/80 dark:supports-[backdrop-filter]:bg-background/70">
         <div className="container px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="mb-4 flex items-center justify-center gap-2 sm:gap-5">
             <h1 className="font-heading text-center text-3xl leading-tight tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
