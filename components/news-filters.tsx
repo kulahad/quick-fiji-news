@@ -39,12 +39,14 @@ export const SOURCES = [
 ] as const;
 
 const CATEGORIES: NewsCategory[] = [
+  "All",
+  "Politics",
   "Local",
-  "Technology",
   "Business",
   "Health",
-  "World",
   "Sports",
+  "Technology",
+  "World",
 ];
 
 type SortOption = "latest" | "local-first";

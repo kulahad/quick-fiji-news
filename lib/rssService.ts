@@ -209,7 +209,7 @@ function createScrapedItem(
     content: summary,
     source: sourceName,
     guid: link,
-    categories: categorizeText(title, summary),
+    categories: categorizeText(title, summary, link),
     volume: {
       number: `${parsedDate.getUTCFullYear()}-${String(
         parsedDate.getUTCMonth() + 1
@@ -572,7 +572,7 @@ function parseFeed(source: string, feedContent: string): NewsItem[] {
       (parsedDate.getTime() - startOfMonth.getTime()) / 86_400_000
     );
     const mappedCategories = categorizeFromRssCategories(categories);
-    const fallbackCategories = categorizeText(title, content);
+    const fallbackCategories = categorizeText(title, content, link);
 
     return [
       {
