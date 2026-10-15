@@ -51,7 +51,7 @@ export default function NewsContainer() {
 
   return (
     <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-      <div className="md:w-1/3 lg:w-1/4 md:sticky md:top-4 md:self-start">
+      <div className="contents md:block md:w-1/3 lg:w-1/4 md:sticky md:top-4 md:self-start">
         <NewsFilters
           selectedSources={selectedSources}
           setSelectedSources={setSelectedSources}
